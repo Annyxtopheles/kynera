@@ -1,60 +1,43 @@
 import React from 'react';
-import kyneraSvg from '../assets/kynera-mark.svg';
-import kyneraSvg from '../assets/kynera-mark.svg';
+import kyneraMark from '../assets/kynera-mark.svg';
 
 interface BrandLogoProps {
   className?: string;
   size?: 'sm' | 'md' | 'lg';
-  showPoweredBy?: boolean;
   variant?: 'full' | 'compact';
 }
 
 export const BrandLogo: React.FC<BrandLogoProps> = ({
   className = '',
   size = 'md',
-  showPoweredBy = true,
   variant = 'full',
 }) => {
-  const primaryHeights = {
-    sm: 'h-6',
-    md: 'h-7 sm:h-7.5',
-    lg: 'h-8 sm:h-9',
+  const iconSizes = {
+    sm: 'h-7 w-7',
+    md: 'h-8 w-8 sm:h-9 sm:w-9',
+    lg: 'h-9 w-9 sm:h-10 sm:w-10',
   };
 
-  const secondaryHeights = {
-    sm: 'h-2.5',
-    md: 'h-3 sm:h-3.5',
-    lg: 'h-4',
-  };
-
-  // Indent so "Built for modern clinics" starts under the wordmark text (past the icon ~56px out of 313px width ratio)
-  const textIndents = {
-    sm: 'pl-[30px]',
-    md: 'pl-[36px] sm:pl-[40px]',
-    lg: 'pl-[44px] sm:pl-[48px]',
+  const textSizes = {
+    sm: 'text-lg',
+    md: 'text-xl sm:text-[22px]',
+    lg: 'text-2xl sm:text-[26px]',
   };
 
   return (
-    <div className={`inline-flex flex-col items-start select-none ${className}`}>
-      {/* Official Kynera Logo SVG (icon is left 18%, wordmark text starts after) */}
+    <div className={`inline-flex items-center gap-2.5 select-none ${className}`}>
       <img
-        src={kyneraSvg}
-        alt="Kynera"
-        className={`${primaryHeights[size]} w-auto object-contain flex-shrink-0`}
+        src={kyneraMark}
+        alt="Kynera mark"
+        className={`${iconSizes[size]} object-contain flex-shrink-0`}
       />
 
-      {/* Built for modern clinics placed directly under the Kynera TEXT (not under the icon) */}
-      {showPoweredBy && variant === 'full' && (
-        <div className={`flex items-center gap-1.5 mt-0.5 ${textIndents[size]}`}>
-          <span className="text-[9px] font-semibold tracking-wider text-text-body/60 uppercase whitespace-nowrap">
-            Powered by
-          </span>
-          <img
-            src={kyneraSvg}
-            alt="Kynera"
-            className={`${secondaryHeights[size]} w-auto object-contain flex-shrink-0 opacity-85`}
-          />
-        </div>
+      {variant === 'full' && (
+        <span
+          className={`${textSizes[size]} font-extrabold font-heading tracking-tight leading-none text-brand-navy`}
+        >
+          Ky<span className="text-brand-blue">nera</span>
+        </span>
       )}
     </div>
   );

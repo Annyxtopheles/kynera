@@ -1,4 +1,5 @@
 import React from 'react';
+import kyneraMark from '../assets/kynera-mark.svg';
 import dashboardMain from '../assets/dashboard-main.png';
 import floatingPatient from '../assets/floating-patient.png';
 import floatingCompliance from '../assets/floating-compliance.png';
@@ -85,6 +86,21 @@ export const DashboardShowcase: React.FC = () => {
               className="w-full h-auto object-cover block shadow-inner"
               loading="eager"
             />
+            {/* Clean proportional brand lockup inside the dashboard sidebar header */}
+            <div
+              className="absolute left-[2.5%] top-[4.1%] flex items-center gap-1 sm:gap-1.5 pointer-events-none select-none"
+              aria-hidden="true"
+            >
+              <img
+                src={kyneraMark}
+                alt=""
+                className="w-2.5 h-2.5 sm:w-3.5 sm:h-3.5 md:w-4 md:h-4 object-contain"
+              />
+              <span className="text-[7px] sm:text-[9px] md:text-[11px] font-bold font-heading tracking-tight text-brand-navy whitespace-nowrap">
+                Ky<span className="text-brand-blue">nera</span>{' '}
+                <span className="font-semibold text-brand-navy/80">platform</span>
+              </span>
+            </div>
           </div>
         </div>
       </div>
