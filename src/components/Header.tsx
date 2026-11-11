@@ -73,15 +73,14 @@ export const Header: React.FC<HeaderProps> = ({ onRequestDemo }) => {
 
           {/* Right-hand Action Links & CTAs */}
           <div className="hidden sm:flex items-center gap-5">
-            <a
-              href="https://app.kynera.ai/login"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-bold text-brand-navy hover:text-brand-blue transition-colors inline-flex items-center gap-1"
+            <button
+              type="button"
+              onClick={onRequestDemo}
+              className="text-sm font-bold text-brand-navy hover:text-brand-blue transition-colors inline-flex items-center gap-1 cursor-pointer"
             >
               <span>Demo Login</span>
               <ExternalLink className="w-3.5 h-3.5 text-text-body/60" />
-            </a>
+            </button>
 
             <button
               onClick={onRequestDemo}
@@ -129,14 +128,16 @@ export const Header: React.FC<HeaderProps> = ({ onRequestDemo }) => {
           </div>
 
           <div className="pt-4 border-t border-border-soft flex flex-col gap-3">
-            <a
-              href="https://app.kynera.ai/login"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sm font-semibold text-center text-brand-navy py-2 rounded-xl bg-surface-pale border border-border-soft"
+            <button
+              type="button"
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                onRequestDemo();
+              }}
+              className="text-sm font-semibold text-center text-brand-navy py-2 rounded-xl bg-surface-pale border border-border-soft cursor-pointer"
             >
               Demo Login
-            </a>
+            </button>
             <button
               onClick={() => {
                 setIsMobileMenuOpen(false);

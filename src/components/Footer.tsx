@@ -8,7 +8,7 @@ interface FooterProps {
   onRequestDemo?: () => void;
 }
 
-export const Footer: React.FC<FooterProps> = () => {
+export const Footer: React.FC<FooterProps> = ({ onRequestDemo }) => {
   return (
     <footer className="bg-surface-white pt-6 pb-12 overflow-hidden">
       {/* Animated ECG Heartbeat Divider Line — Full Bleed edge-to-edge */}
@@ -114,15 +114,14 @@ export const Footer: React.FC<FooterProps> = () => {
             </h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <a 
-                  href="https://app.kynera.ai/login" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="text-text-body hover:text-brand-blue transition-colors flex items-center gap-1"
+                <button
+                  type="button"
+                  onClick={onRequestDemo}
+                  className="text-text-body hover:text-brand-blue transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <span>Demo Login</span>
                   <ArrowUpRight className="w-3 h-3 text-text-body/50" />
-                </a>
+                </button>
               </li>
               <li>
                 <a 
@@ -178,8 +177,7 @@ export const Footer: React.FC<FooterProps> = () => {
         {/* Bottom Copyright Strip */}
         <div className="pt-8 text-center text-xs text-text-body/70">
           <p>
-            © 2026 Kynera Health. All rights reserved. Powered by{' '}
-            <span className="font-semibold text-brand-navy">Kynera</span>.
+            © 2026 Kynera Health. All rights reserved.
           </p>
         </div>
 
