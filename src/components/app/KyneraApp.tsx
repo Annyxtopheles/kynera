@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from './DashboardLayout';
 import { OverviewView } from './OverviewView';
 import { CallMonitorView } from './CallMonitorView';
+import { ScheduleView } from './ScheduleView';
+import { PatientsView } from './PatientsView';
 import {
   INITIAL_AGENTS,
   INITIAL_CALLS,
@@ -32,7 +34,7 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
   const [agents, setAgents] = useState<AIAgent[]>(INITIAL_AGENTS);
   const [calls, setCalls] = useState<CallRecord[]>(INITIAL_CALLS);
   const [appointments, setAppointments] = useState<AppointmentItem[]>(INITIAL_APPOINTMENTS);
-  const [patients] = useState<PatientRecord[]>(INITIAL_PATIENTS);
+  const [patients, setPatients] = useState<PatientRecord[]>(INITIAL_PATIENTS);
   const [claims] = useState<ClaimRecord[]>(INITIAL_CLAIMS);
   const [connectors] = useState<EhrConnector[]>(INITIAL_CONNECTORS);
   const [selectedCall, setSelectedCall] = useState<CallRecord | null>(null);
@@ -126,6 +128,18 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
     );
   };
 
+  const handleUpdateAppointment = (id: string, patch: Partial<AppointmentItem>) => {
+    setAppointments((prev) =>
+      prev.map((apt) => (apt.id === id ? { ...apt, ...patch } : apt))
+    );
+  };
+
+  const handleUpdatePatient = (id: string, patch: Partial<PatientRecord>) => {
+    setPatients((prev) =>
+      prev.map((pat) => (pat.id === id ? { ...pat, ...patch } : pat))
+    );
+  };
+
   const pendingClaimsCount = claims.filter((c) => c.status !== 'Submitted').length;
   const pendingEligCount = patients.filter((p) => p.eligibilityStatus !== 'Verified').length;
 
@@ -174,7 +188,21 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
         />
       )}
 
-      {activeTab !== 'overview' && activeTab !== 'calls' && (
+      {activeTab === 'schedule' && (
+        <ScheduleView
+          appointments={appointments}
+          onUpdateAppointment={handleUpdateAppointment}
+        />
+      )}
+
+      {activeTab === 'patients' && (
+        <PatientsView
+          patients={patients}
+          onUpdatePatient={handleUpdatePatient}
+        />
+      )}
+
+      {(activeTab === 'claims' || activeTab === 'studio') && (
         <div className="rounded-xl bg-white border border-border-soft p-6">
           <p className="text-sm font-semibold text-brand-navy">
             Module: {activeTab}
