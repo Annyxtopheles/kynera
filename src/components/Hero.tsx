@@ -38,10 +38,10 @@ export const Hero: React.FC<HeroProps> = ({ onRequestDemo }) => {
             </button>
 
             <a
-              href="#workflows"
+              href="#/app"
               className="w-full sm:w-auto py-3.5 px-7 rounded-xl font-heading font-bold text-base text-white bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/30 transition-all duration-200 inline-flex items-center justify-center gap-2 group"
             >
-              <span>Explore 4 Workflows</span>
+              <span>Launch Live App</span>
               <ArrowRight className="w-4 h-4 text-white/80 transition-transform group-hover:translate-x-0.5" />
             </a>
           </div>

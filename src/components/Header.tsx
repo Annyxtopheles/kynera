@@ -73,14 +73,13 @@ export const Header: React.FC<HeaderProps> = ({ onRequestDemo }) => {
 
           {/* Right-hand Action Links & CTAs */}
           <div className="hidden sm:flex items-center gap-5">
-            <button
-              type="button"
-              onClick={onRequestDemo}
+            <a
+              href="#/app"
               className="text-sm font-bold text-brand-navy hover:text-brand-blue transition-colors inline-flex items-center gap-1 cursor-pointer"
             >
               <span>Demo Login</span>
               <ExternalLink className="w-3.5 h-3.5 text-text-body/60" />
-            </button>
+            </a>
 
             <button
               onClick={onRequestDemo}
@@ -128,16 +127,13 @@ export const Header: React.FC<HeaderProps> = ({ onRequestDemo }) => {
           </div>
 
           <div className="pt-4 border-t border-border-soft flex flex-col gap-3">
-            <button
-              type="button"
-              onClick={() => {
-                setIsMobileMenuOpen(false);
-                onRequestDemo();
-              }}
+            <a
+              href="#/app"
+              onClick={() => setIsMobileMenuOpen(false)}
               className="text-sm font-semibold text-center text-brand-navy py-2 rounded-xl bg-surface-pale border border-border-soft cursor-pointer"
             >
               Demo Login
-            </button>
+            </a>
             <button
               onClick={() => {
                 setIsMobileMenuOpen(false);

@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { Hero } from './components/Hero';
 import { HeroBackgroundAnimation } from './components/HeroBackgroundAnimation';
@@ -11,10 +11,45 @@ import { FAQ } from './components/FAQ';
 import { FinalCTA } from './components/FinalCTA';
 import { Footer } from './components/Footer';
 import { DemoModal } from './components/DemoModal';
+import { KyneraApp } from './components/app/KyneraApp';
+import type { DashboardTab } from './data/dashboardData';
+
+const VALID_TABS: DashboardTab[] = ['overview', 'calls', 'schedule', 'patients', 'claims', 'studio'];
+
+function parseAppRoute(hash: string): { isApp: boolean; tab: DashboardTab } {
+  if (!hash.startsWith('#/app')) {
+    return { isApp: false, tab: 'overview' };
+  }
+  const slug = hash.replace(/^#\/app\/?/, '').toLowerCase() as DashboardTab;
+  const tab = VALID_TABS.includes(slug) ? slug : 'overview';
+  return { isApp: true, tab };
+}
 
 export function App() {
+  const [route, setRoute] = useState(() => parseAppRoute(window.location.hash));
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
   const [demoInitialEmail, setDemoInitialEmail] = useState('');
+
+  useEffect(() => {
+    const onHashChange = () => {
+      const next = parseAppRoute(window.location.hash);
+      setRoute(next);
+      if (next.isApp) {
+        window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+      }
+    };
+    window.addEventListener('hashchange', onHashChange);
+    return () => window.removeEventListener('hashchange', onHashChange);
+  }, []);
+
+  const navigateToApp = (tab: DashboardTab = 'overview') => {
+    window.location.hash = tab === 'overview' ? '#/app' : `#/app/${tab}`;
+  };
+
+  const navigateToLanding = () => {
+    window.location.hash = '';
+    window.scrollTo({ top: 0, behavior: 'instant' as ScrollBehavior });
+  };
 
   const openDemoModal = (email?: string) => {
     if (typeof email === 'string' && email.trim().length > 0) {
@@ -26,6 +61,16 @@ export function App() {
   const closeDemoModal = () => {
     setIsDemoModalOpen(false);
   };
+
+  if (route.isApp) {
+    return (
+      <KyneraApp
+        activeTab={route.tab}
+        onSelectTab={navigateToApp}
+        onNavigateHome={navigateToLanding}
+      />
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col bg-surface-white text-text-body font-sans selection:bg-brand-teal/20 selection:text-brand-navy">

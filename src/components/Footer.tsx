@@ -114,14 +114,13 @@ export const Footer: React.FC<FooterProps> = ({ onRequestDemo }) => {
             </h4>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <button
-                  type="button"
-                  onClick={onRequestDemo}
+                <a
+                  href="#/app"
                   className="text-text-body hover:text-brand-blue transition-colors flex items-center gap-1 cursor-pointer"
                 >
                   <span>Demo Login</span>
                   <ArrowUpRight className="w-3 h-3 text-text-body/50" />
-                </button>
+                </a>
               </li>
               <li>
                 <a 
