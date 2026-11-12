@@ -4,11 +4,7 @@ import { Mail, ArrowUpRight } from 'lucide-react';
 import hipaaBadge from '../assets/hipaa-badge.png';
 import pciDssBadge from '../assets/pci-dss-badge.png';
 
-interface FooterProps {
-  onRequestDemo?: () => void;
-}
-
-export const Footer: React.FC<FooterProps> = ({ onRequestDemo }) => {
+export const Footer: React.FC = () => {
   return (
     <footer className="bg-surface-white pt-6 pb-12 overflow-hidden">
       {/* Animated ECG Heartbeat Divider Line — Full Bleed edge-to-edge */}

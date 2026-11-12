@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { DashboardLayout } from './DashboardLayout';
+import { OverviewView } from './OverviewView';
+import { CallMonitorView } from './CallMonitorView';
 import {
   INITIAL_AGENTS,
   INITIAL_CALLS,
@@ -30,9 +32,10 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
   const [agents, setAgents] = useState<AIAgent[]>(INITIAL_AGENTS);
   const [calls, setCalls] = useState<CallRecord[]>(INITIAL_CALLS);
   const [appointments, setAppointments] = useState<AppointmentItem[]>(INITIAL_APPOINTMENTS);
-  const [patients, setPatients] = useState<PatientRecord[]>(INITIAL_PATIENTS);
-  const [claims, setClaims] = useState<ClaimRecord[]>(INITIAL_CLAIMS);
-  const [connectors, setConnectors] = useState<EhrConnector[]>(INITIAL_CONNECTORS);
+  const [patients] = useState<PatientRecord[]>(INITIAL_PATIENTS);
+  const [claims] = useState<ClaimRecord[]>(INITIAL_CLAIMS);
+  const [connectors] = useState<EhrConnector[]>(INITIAL_CONNECTORS);
+  const [selectedCall, setSelectedCall] = useState<CallRecord | null>(null);
 
   const [liveCallActive, setLiveCallActive] = useState(false);
   const [liveCallStep, setLiveCallStep] = useState<string | null>(null);
@@ -117,6 +120,12 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
     simTimersRef.current.push(t1, t2, t3);
   };
 
+  const handleToggleAgent = (id: string) => {
+    setAgents((prev) =>
+      prev.map((a) => (a.id === id ? { ...a, active: !a.active } : a))
+    );
+  };
+
   const pendingClaimsCount = claims.filter((c) => c.status !== 'Submitted').length;
   const pendingEligCount = patients.filter((p) => p.eligibilityStatus !== 'Verified').length;
 
@@ -142,14 +151,39 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
         </div>
       )}
 
-      <div className="rounded-xl bg-white border border-border-soft p-6">
-        <p className="text-sm font-semibold text-brand-navy">
-          Active Module: {activeTab}
-        </p>
-        <p className="text-xs text-text-body mt-1 tabular-nums">
-          {agents.length} agents · {calls.length} calls · {appointments.length} appointments · {patients.length} patients · {claims.length} claims · {connectors.length} connectors
-        </p>
-      </div>
+      {activeTab === 'overview' && (
+        <OverviewView
+          agents={agents}
+          calls={calls}
+          appointments={appointments}
+          claims={claims}
+          onToggleAgent={handleToggleAgent}
+          onNavigateTab={onSelectTab}
+          onSelectCall={(call) => {
+            setSelectedCall(call);
+            onSelectTab('calls');
+          }}
+        />
+      )}
+
+      {activeTab === 'calls' && (
+        <CallMonitorView
+          calls={calls}
+          selectedCall={selectedCall}
+          onSelectCall={setSelectedCall}
+        />
+      )}
+
+      {activeTab !== 'overview' && activeTab !== 'calls' && (
+        <div className="rounded-xl bg-white border border-border-soft p-6">
+          <p className="text-sm font-semibold text-brand-navy">
+            Module: {activeTab}
+          </p>
+          <p className="text-xs text-text-body mt-1 tabular-nums">
+            {connectors.length} connectors synced
+          </p>
+        </div>
+      )}
     </DashboardLayout>
   );
 };

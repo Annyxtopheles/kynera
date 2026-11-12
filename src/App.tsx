@@ -120,7 +120,7 @@ export function App() {
       </main>
 
       {/* Footer */}
-      <Footer onRequestDemo={openDemoModal} />
+      <Footer />
 
       {/* Interactive Live Demo Request Modal */}
       <DemoModal isOpen={isDemoModalOpen} onClose={closeDemoModal} initialEmail={demoInitialEmail} />
