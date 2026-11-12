@@ -4,6 +4,8 @@ import { OverviewView } from './OverviewView';
 import { CallMonitorView } from './CallMonitorView';
 import { ScheduleView } from './ScheduleView';
 import { PatientsView } from './PatientsView';
+import { ClaimsView } from './ClaimsView';
+import { AgentStudioView } from './AgentStudioView';
 import {
   INITIAL_AGENTS,
   INITIAL_CALLS,
@@ -35,8 +37,8 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
   const [calls, setCalls] = useState<CallRecord[]>(INITIAL_CALLS);
   const [appointments, setAppointments] = useState<AppointmentItem[]>(INITIAL_APPOINTMENTS);
   const [patients, setPatients] = useState<PatientRecord[]>(INITIAL_PATIENTS);
-  const [claims] = useState<ClaimRecord[]>(INITIAL_CLAIMS);
-  const [connectors] = useState<EhrConnector[]>(INITIAL_CONNECTORS);
+  const [claims, setClaims] = useState<ClaimRecord[]>(INITIAL_CLAIMS);
+  const [connectors, setConnectors] = useState<EhrConnector[]>(INITIAL_CONNECTORS);
   const [selectedCall, setSelectedCall] = useState<CallRecord | null>(null);
 
   const [liveCallActive, setLiveCallActive] = useState(false);
@@ -140,6 +142,26 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
     );
   };
 
+  const handleApproveClaim = (id: string) => {
+    setClaims((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, status: 'Submitted', preAuth: 'Approved' } : c))
+    );
+  };
+
+  const handleSyncConnector = (id: string) => {
+    setConnectors((prev) =>
+      prev.map((c) =>
+        c.id === id ? { ...c, lastSync: 'Just now', recordsSynced: c.recordsSynced + 1 } : c
+      )
+    );
+  };
+
+  const handleToggleConnector = (id: string) => {
+    setConnectors((prev) =>
+      prev.map((c) => (c.id === id ? { ...c, connected: !c.connected } : c))
+    );
+  };
+
   const pendingClaimsCount = claims.filter((c) => c.status !== 'Submitted').length;
   const pendingEligCount = patients.filter((p) => p.eligibilityStatus !== 'Verified').length;
 
@@ -202,15 +224,16 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
         />
       )}
 
-      {(activeTab === 'claims' || activeTab === 'studio') && (
-        <div className="rounded-xl bg-white border border-border-soft p-6">
-          <p className="text-sm font-semibold text-brand-navy">
-            Module: {activeTab}
-          </p>
-          <p className="text-xs text-text-body mt-1 tabular-nums">
-            {connectors.length} connectors synced
-          </p>
-        </div>
+      {activeTab === 'claims' && (
+        <ClaimsView claims={claims} onApproveClaim={handleApproveClaim} />
+      )}
+
+      {activeTab === 'studio' && (
+        <AgentStudioView
+          connectors={connectors}
+          onSyncConnector={handleSyncConnector}
+          onToggleConnector={handleToggleConnector}
+        />
       )}
     </DashboardLayout>
   );
