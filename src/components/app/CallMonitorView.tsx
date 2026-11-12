@@ -1,5 +1,14 @@
-import React, { useState } from 'react';
-import { Search, X, PhoneIncoming, Clock, ShieldCheck } from 'lucide-react';
+import React, { useEffect, useMemo, useState } from 'react';
+import {
+  Search,
+  X,
+  PhoneIncoming,
+  Clock,
+  ShieldCheck,
+  Play,
+  Pause,
+  Volume2,
+} from 'lucide-react';
 import type { CallRecord } from '../../data/dashboardData';
 
 interface CallMonitorViewProps {
@@ -14,6 +23,248 @@ const OUTCOME_FILTERS: Array<'All' | CallRecord['outcome']> = [
   'Warm Transfer',
   'Resolved',
 ];
+
+const parseDurationToSec = (duration: string): number => {
+  const minMatch = duration.match(/(\d+)m/);
+  const secMatch = duration.match(/(\d+)s/);
+  const mins = minMatch ? Number(minMatch[1]) : 0;
+  const secs = secMatch ? Number(secMatch[1]) : 0;
+  return Math.max(15, mins * 60 + secs);
+};
+
+const parseTurnSec = (timeStr: string): number => {
+  const parts = timeStr.split(':').map(Number);
+  if (parts.length === 2 && !Number.isNaN(parts[0]) && !Number.isNaN(parts[1])) {
+    return parts[0] * 60 + parts[1];
+  }
+  return 0;
+};
+
+const formatSec = (total: number): string => {
+  const m = Math.floor(total / 60);
+  const s = Math.floor(total % 60);
+  return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+};
+
+const WAVEFORM_BARS = [
+  28, 42, 65, 52, 84, 70, 35, 22, 48, 76, 92, 60, 40, 26, 54, 80, 68, 45, 30, 62, 88, 74,
+  38, 24, 50, 78, 94, 66, 44, 32, 58, 82, 64, 36, 20, 46, 72, 86, 56, 34, 60, 74, 48, 28,
+];
+
+const TranscriptDrawer: React.FC<{
+  call: CallRecord;
+  onClose: () => void;
+}> = ({ call, onClose }) => {
+  const totalSec = useMemo(() => parseDurationToSec(call.duration), [call.duration]);
+  const [playing, setPlaying] = useState(false);
+  const [currentSec, setCurrentSec] = useState(0);
+  const [speed, setSpeed] = useState<1 | 1.25 | 1.5>(1);
+
+  useEffect(() => {
+    if (!playing) return;
+    const interval = window.setInterval(() => {
+      setCurrentSec((prev) => {
+        const next = prev + 0.5 * speed;
+        if (next >= totalSec) {
+          setPlaying(false);
+          return totalSec;
+        }
+        return next;
+      });
+    }, 500);
+    return () => clearInterval(interval);
+  }, [playing, speed, totalSec]);
+
+  const progressPct = Math.min(100, Math.round((currentSec / totalSec) * 100));
+
+  const activeTurnIndex = useMemo(() => {
+    let idx = 0;
+    call.transcript.forEach((line, i) => {
+      if (parseTurnSec(line.time) <= currentSec) {
+        idx = i;
+      }
+    });
+    return idx;
+  }, [call.transcript, currentSec]);
+
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end">
+      <div
+        className="fixed inset-0 bg-brand-navy/30 backdrop-blur-xs"
+        onClick={onClose}
+      />
+      <aside
+        role="dialog"
+        aria-label={`Transcript for ${call.callerName}`}
+        className="relative z-10 w-full max-w-lg bg-white border-l border-border-soft h-full flex flex-col"
+      >
+        <div className="px-6 py-4 border-b border-border-soft flex items-center justify-between">
+          <div>
+            <div className="flex items-center gap-2">
+              <PhoneIncoming className="w-4 h-4 text-brand-blue" />
+              <h3 className="text-base font-bold font-heading text-brand-navy">
+                {call.callerName}
+              </h3>
+              <span className="text-xs font-semibold text-text-body/60 tabular-nums">
+                {call.id}
+              </span>
+            </div>
+            <p className="text-xs text-text-body/75 mt-0.5 tabular-nums">
+              {call.callerPhone} · {call.timestamp} · {call.duration}
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onClose}
+            className="p-2 rounded-lg text-text-body hover:bg-surface-pale cursor-pointer"
+            aria-label="Close transcript drawer"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* Interactive Voice Waveform Scrubber */}
+          <div className="p-4 rounded-xl bg-[#F7FAFC] border border-border-soft space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (currentSec >= totalSec) setCurrentSec(0);
+                    setPlaying((prev) => !prev);
+                  }}
+                  className="w-8 h-8 rounded-full bg-brand-blue hover:bg-brand-blue-hover text-white flex items-center justify-center transition-colors cursor-pointer"
+                  aria-label={playing ? 'Pause call recording' : 'Play call recording'}
+                >
+                  {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+                </button>
+                <div>
+                  <p className="text-xs font-bold text-brand-navy flex items-center gap-1.5">
+                    <Volume2 className="w-3.5 h-3.5 text-brand-blue" />
+                    Call Recording
+                  </p>
+                  <p className="text-[11px] text-text-body/70 tabular-nums">
+                    {formatSec(currentSec)} / {formatSec(totalSec)}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-1.5">
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  {call.sentiment}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setSpeed((s) => (s === 1 ? 1.25 : s === 1.25 ? 1.5 : 1))
+                  }
+                  className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-white border border-border-soft text-brand-navy hover:bg-surface-pale tabular-nums cursor-pointer"
+                  title="Playback speed"
+                >
+                  {speed}x
+                </button>
+              </div>
+            </div>
+
+            <div
+              className="h-10 flex items-center gap-[3px] cursor-pointer select-none"
+              role="slider"
+              aria-label="Audio scrub timeline"
+              aria-valuemin={0}
+              aria-valuemax={totalSec}
+              aria-valuenow={Math.round(currentSec)}
+              tabIndex={0}
+              onClick={(e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                const ratio = Math.max(0, Math.min(1, (e.clientX - rect.left) / rect.width));
+                setCurrentSec(Math.round(ratio * totalSec));
+              }}
+            >
+              {WAVEFORM_BARS.map((heightPct, idx) => {
+                const barPct = ((idx + 1) / WAVEFORM_BARS.length) * 100;
+                const played = barPct <= progressPct;
+                return (
+                  <div
+                    key={idx}
+                    className={`flex-1 rounded-full transition-colors duration-150 ${
+                      played ? 'bg-brand-blue' : 'bg-slate-200 hover:bg-brand-teal/60'
+                    }`}
+                    style={{ height: `${heightPct}%` }}
+                  />
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Summary Box */}
+          <div className="p-4 rounded-xl bg-surface-pale/70 border border-border-soft space-y-2">
+            <div className="flex items-center justify-between text-xs">
+              <span className="font-bold text-brand-navy flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
+                Automated Summary &amp; EHR Sync
+              </span>
+              <span className="font-semibold text-brand-blue">{call.payer}</span>
+            </div>
+            <p className="text-xs sm:text-sm text-text-body leading-relaxed">
+              {call.summary}
+            </p>
+          </div>
+
+          {/* Transcript Lines */}
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-bold uppercase tracking-wider text-text-body/70 flex items-center gap-1.5">
+                <Clock className="w-3.5 h-3.5" />
+                Call Transcript
+              </h4>
+              <span className="text-[11px] text-text-body/60">Click turn to jump</span>
+            </div>
+
+            <div className="space-y-2.5">
+              {call.transcript.map((line, idx) => {
+                const isActiveTurn = playing && idx === activeTurnIndex;
+                return (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => setCurrentSec(parseTurnSec(line.time))}
+                    className={`w-full text-left p-3 rounded-xl border text-sm transition-colors cursor-pointer ${
+                      isActiveTurn
+                        ? 'bg-surface-pale border-brand-blue/50 ring-1 ring-brand-blue/25'
+                        : line.speaker === 'System'
+                        ? 'bg-[#FAFCFD] border-border-soft text-xs text-brand-blue font-semibold'
+                        : line.speaker === 'Clara'
+                        ? 'bg-white border-border-soft hover:border-brand-blue/30'
+                        : 'bg-surface-pale/40 border-border-soft hover:border-brand-blue/30'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between text-[11px] font-bold mb-1">
+                      <span
+                        className={
+                          line.speaker === 'Clara'
+                            ? 'text-brand-blue'
+                            : line.speaker === 'System'
+                            ? 'text-emerald-700'
+                            : 'text-brand-navy'
+                        }
+                      >
+                        {line.speaker}
+                      </span>
+                      <span className="text-text-body/55 tabular-nums">{line.time}</span>
+                    </div>
+                    <p className="text-text-body leading-relaxed">{line.text}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+      </aside>
+    </div>
+  );
+};
 
 export const CallMonitorView: React.FC<CallMonitorViewProps> = ({
   calls,
@@ -154,98 +405,11 @@ export const CallMonitorView: React.FC<CallMonitorViewProps> = ({
 
       {/* Fixed Slide-Over Transcript Drawer */}
       {selectedCall && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-          <div
-            className="fixed inset-0 bg-brand-navy/30 backdrop-blur-xs"
-            onClick={() => onSelectCall(null)}
-          />
-          <aside
-            role="dialog"
-            aria-label={`Transcript for ${selectedCall.callerName}`}
-            className="relative z-10 w-full max-w-lg bg-white border-l border-border-soft h-full flex flex-col"
-          >
-            <div className="px-6 py-4 border-b border-border-soft flex items-center justify-between">
-              <div>
-                <div className="flex items-center gap-2">
-                  <PhoneIncoming className="w-4 h-4 text-brand-blue" />
-                  <h3 className="text-base font-bold font-heading text-brand-navy">
-                    {selectedCall.callerName}
-                  </h3>
-                  <span className="text-xs font-semibold text-text-body/60 tabular-nums">
-                    {selectedCall.id}
-                  </span>
-                </div>
-                <p className="text-xs text-text-body/75 mt-0.5 tabular-nums">
-                  {selectedCall.callerPhone} · {selectedCall.timestamp} · {selectedCall.duration}
-                </p>
-              </div>
-
-              <button
-                type="button"
-                onClick={() => onSelectCall(null)}
-                className="p-2 rounded-lg text-text-body hover:bg-surface-pale cursor-pointer"
-                aria-label="Close transcript drawer"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-
-            <div className="flex-1 overflow-y-auto p-6 space-y-5">
-              {/* Summary Box */}
-              <div className="p-4 rounded-xl bg-surface-pale/70 border border-border-soft space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-bold text-brand-navy flex items-center gap-1.5">
-                    <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-                    Automated Summary &amp; EHR Sync
-                  </span>
-                  <span className="font-semibold text-brand-blue">{selectedCall.payer}</span>
-                </div>
-                <p className="text-xs sm:text-sm text-text-body leading-relaxed">
-                  {selectedCall.summary}
-                </p>
-              </div>
-
-              {/* Transcript Lines */}
-              <div className="space-y-3">
-                <h4 className="text-xs font-bold uppercase tracking-wider text-text-body/70 flex items-center gap-1.5">
-                  <Clock className="w-3.5 h-3.5" />
-                  Call Transcript
-                </h4>
-
-                <div className="space-y-3">
-                  {selectedCall.transcript.map((line, idx) => (
-                    <div
-                      key={idx}
-                      className={`p-3 rounded-xl border text-sm ${
-                        line.speaker === 'System'
-                          ? 'bg-[#FAFCFD] border-border-soft text-xs text-brand-blue font-semibold'
-                          : line.speaker === 'Clara'
-                          ? 'bg-white border-border-soft'
-                          : 'bg-surface-pale/40 border-border-soft'
-                      }`}
-                    >
-                      <div className="flex items-center justify-between text-[11px] font-bold mb-1">
-                        <span
-                          className={
-                            line.speaker === 'Clara'
-                              ? 'text-brand-blue'
-                              : line.speaker === 'System'
-                              ? 'text-emerald-700'
-                              : 'text-brand-navy'
-                          }
-                        >
-                          {line.speaker}
-                        </span>
-                        <span className="text-text-body/55 tabular-nums">{line.time}</span>
-                      </div>
-                      <p className="text-text-body leading-relaxed">{line.text}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </aside>
-        </div>
+        <TranscriptDrawer
+          key={selectedCall.id}
+          call={selectedCall}
+          onClose={() => onSelectCall(null)}
+        />
       )}
     </div>
   );
