@@ -43,13 +43,22 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
 
   const [liveCallActive, setLiveCallActive] = useState(false);
   const [liveCallStep, setLiveCallStep] = useState<string | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
   const simTimersRef = useRef<number[]>([]);
+  const toastTimerRef = useRef<number | null>(null);
 
   useEffect(() => {
     return () => {
       simTimersRef.current.forEach((t) => clearTimeout(t));
+      if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
     };
   }, []);
+
+  const showToast = (message: string) => {
+    setToastMessage(message);
+    if (toastTimerRef.current) clearTimeout(toastTimerRef.current);
+    toastTimerRef.current = window.setTimeout(() => setToastMessage(null), 3200);
+  };
 
   const handleSimulateCall = () => {
     if (liveCallActive) return;
@@ -128,24 +137,28 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
     setAgents((prev) =>
       prev.map((a) => (a.id === id ? { ...a, active: !a.active } : a))
     );
+    showToast('AI agent status updated');
   };
 
   const handleUpdateAppointment = (id: string, patch: Partial<AppointmentItem>) => {
     setAppointments((prev) =>
       prev.map((apt) => (apt.id === id ? { ...apt, ...patch } : apt))
     );
+    showToast(`Appointment ${id} updated in EHR schedule`);
   };
 
   const handleUpdatePatient = (id: string, patch: Partial<PatientRecord>) => {
     setPatients((prev) =>
       prev.map((pat) => (pat.id === id ? { ...pat, ...patch } : pat))
     );
+    showToast(`Patient record ${id} updated`);
   };
 
   const handleApproveClaim = (id: string) => {
     setClaims((prev) =>
       prev.map((c) => (c.id === id ? { ...c, status: 'Submitted', preAuth: 'Approved' } : c))
     );
+    showToast(`Claim ${id} queued for EDI 837 submission`);
   };
 
   const handleSyncConnector = (id: string) => {
@@ -154,6 +167,7 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
         c.id === id ? { ...c, lastSync: 'Just now', recordsSynced: c.recordsSynced + 1 } : c
       )
     );
+    showToast('EHR connector synced');
   };
 
   const handleToggleConnector = (id: string) => {
@@ -171,6 +185,14 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
       onSelectTab={onSelectTab}
       onNavigateHome={onNavigateHome}
       onSimulateCall={handleSimulateCall}
+      onSelectCall={(call) => {
+        setSelectedCall(call);
+        onSelectTab('calls');
+      }}
+      onNotify={showToast}
+      calls={calls}
+      patients={patients}
+      claims={claims}
       pendingClaimsCount={pendingClaimsCount}
       pendingEligCount={pendingEligCount}
       liveCallActive={liveCallActive}
@@ -234,6 +256,16 @@ export const KyneraApp: React.FC<KyneraAppProps> = ({
           onSyncConnector={handleSyncConnector}
           onToggleConnector={handleToggleConnector}
         />
+      )}
+
+      {toastMessage && (
+        <div
+          role="status"
+          className="fixed bottom-5 right-5 z-50 px-4 py-2.5 rounded-xl bg-brand-navy text-white text-xs font-semibold shadow-lg border border-white/10 flex items-center gap-2.5"
+        >
+          <span className="w-2 h-2 rounded-full bg-brand-teal shrink-0" />
+          <span>{toastMessage}</span>
+        </div>
       )}
     </DashboardLayout>
   );

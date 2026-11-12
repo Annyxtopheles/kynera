@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   LayoutDashboard,
   PhoneCall,
@@ -11,15 +11,75 @@ import {
   X,
   Radio,
   ShieldCheck,
+  Search,
+  Bell,
+  ChevronDown,
+  Check,
+  Building2,
 } from 'lucide-react';
 import { BrandLogo } from '../BrandLogo';
-import type { DashboardTab } from '../../data/dashboardData';
+import { CommandPalette } from './CommandPalette';
+import type { CallRecord, ClaimRecord, DashboardTab, PatientRecord } from '../../data/dashboardData';
+
+export interface ClinicLocation {
+  id: string;
+  name: string;
+  ehr: string;
+  providers: number;
+}
+
+const CLINIC_LOCATIONS: ClinicLocation[] = [
+  { id: 'northside', name: 'Northside Family Care', ehr: 'OpenDental', providers: 3 },
+  { id: 'westlake', name: 'Westlake Dental Group', ehr: 'Dentrix', providers: 5 },
+  { id: 'beacon', name: 'Beacon Urgent Care', ehr: 'athenahealth', providers: 4 },
+];
+
+interface NotificationItem {
+  id: string;
+  title: string;
+  detail: string;
+  time: string;
+  tab: DashboardTab;
+  unread: boolean;
+}
+
+const INITIAL_NOTIFICATIONS: NotificationItem[] = [
+  {
+    id: 'n1',
+    title: '2 claims flagged for pre-auth check',
+    detail: 'CLM-9042 & CLM-9044 need modifier review before EDI 837 batch.',
+    time: '4m ago',
+    tab: 'claims',
+    unread: true,
+  },
+  {
+    id: 'n2',
+    title: '1 open waitlist slot matched',
+    detail: 'Cancelled 11:00 AM slot ready for automated SMS backfill.',
+    time: '12m ago',
+    tab: 'schedule',
+    unread: true,
+  },
+  {
+    id: 'n3',
+    title: 'EDI 270/271 batch verified',
+    detail: '14 afternoon patients cleared with $0–$35 copay estimates.',
+    time: '28m ago',
+    tab: 'patients',
+    unread: false,
+  },
+];
 
 interface DashboardLayoutProps {
   activeTab: DashboardTab;
   onSelectTab: (tab: DashboardTab) => void;
   onNavigateHome: () => void;
   onSimulateCall: () => void;
+  onSelectCall: (call: CallRecord) => void;
+  onNotify?: (message: string) => void;
+  calls: CallRecord[];
+  patients: PatientRecord[];
+  claims: ClaimRecord[];
   pendingClaimsCount: number;
   pendingEligCount: number;
   liveCallActive: boolean;
@@ -44,12 +104,48 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onSelectTab,
   onNavigateHome,
   onSimulateCall,
+  onSelectCall,
+  onNotify,
+  calls,
+  patients,
+  claims,
   pendingClaimsCount,
   pendingEligCount,
   liveCallActive,
   children,
 }) => {
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [paletteOpen, setPaletteOpen] = useState(false);
+  const [clinicMenuOpen, setClinicMenuOpen] = useState(false);
+  const [selectedClinic, setSelectedClinic] = useState<ClinicLocation>(CLINIC_LOCATIONS[0]);
+  const [notifOpen, setNotifOpen] = useState(false);
+  const [notifications, setNotifications] = useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+
+  const notifRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+        e.preventDefault();
+        setPaletteOpen((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, []);
+
+  useEffect(() => {
+    if (!notifOpen) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifRef.current && !notifRef.current.contains(e.target as Node)) {
+        setNotifOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [notifOpen]);
+
+  const unreadCount = notifications.filter((n) => n.unread).length;
 
   const getBadge = (id: DashboardTab) => {
     if (id === 'claims' && pendingClaimsCount > 0) return pendingClaimsCount;
@@ -76,15 +172,62 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         </span>
       </div>
 
-      {/* Clinic Context Pill */}
-      <div className="px-4 pt-4 pb-2">
-        <div className="px-3 py-2.5 rounded-xl bg-white border border-border-soft">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-brand-navy truncate">Northside Family Care</span>
-            <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0" title="EHR Synced" />
+      {/* Clinic Context Switcher */}
+      <div className="px-4 pt-4 pb-2 relative">
+        <button
+          type="button"
+          onClick={() => setClinicMenuOpen((prev) => !prev)}
+          className="w-full px-3 py-2.5 rounded-xl bg-white border border-border-soft hover:border-brand-blue/40 transition-colors text-left cursor-pointer"
+          aria-expanded={clinicMenuOpen}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <span className="flex items-center gap-1.5 min-w-0">
+              <Building2 className="w-3.5 h-3.5 text-brand-blue shrink-0" />
+              <span className="text-xs font-bold text-brand-navy truncate">{selectedClinic.name}</span>
+            </span>
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="w-2 h-2 rounded-full bg-emerald-500" title="EHR Synced" />
+              <ChevronDown
+                className={`w-3.5 h-3.5 text-text-body/60 transition-transform ${
+                  clinicMenuOpen ? 'rotate-180' : ''
+                }`}
+              />
+            </div>
           </div>
-          <p className="text-[11px] text-text-body/75 mt-0.5">OpenDental · 3 Providers</p>
-        </div>
+          <p className="text-[11px] text-text-body/75 mt-0.5 pl-5">
+            {selectedClinic.ehr} · {selectedClinic.providers} Providers
+          </p>
+        </button>
+
+        {clinicMenuOpen && (
+          <div className="absolute left-4 right-4 top-[calc(100%+2px)] z-30 bg-white rounded-xl border border-border-soft shadow-lg p-1.5 space-y-0.5">
+            {CLINIC_LOCATIONS.map((clinic) => {
+              const isSelected = clinic.id === selectedClinic.id;
+              return (
+                <button
+                  key={clinic.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedClinic(clinic);
+                    setClinicMenuOpen(false);
+                    onNotify?.(`Switched workspace to ${clinic.name} (${clinic.ehr})`);
+                  }}
+                  className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-left transition-colors cursor-pointer ${
+                    isSelected ? 'bg-surface-pale text-brand-navy' : 'hover:bg-[#F7FAFC] text-text-body'
+                  }`}
+                >
+                  <div className="min-w-0">
+                    <p className="text-xs font-bold text-brand-navy truncate">{clinic.name}</p>
+                    <p className="text-[10px] text-text-body/70">
+                      {clinic.ehr} · {clinic.providers} Providers
+                    </p>
+                  </div>
+                  {isSelected && <Check className="w-3.5 h-3.5 text-brand-blue shrink-0" />}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Primary Navigation */}
@@ -178,7 +321,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
       {/* Main Content Area */}
       <div className="flex-1 min-w-0 flex flex-col">
         {/* Top Bar */}
-        <header className="h-16 bg-white border-b border-border-soft px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-4 sticky top-0 z-30">
+        <header className="h-16 bg-white border-b border-border-soft px-4 sm:px-6 lg:px-8 flex items-center justify-between gap-3 sticky top-0 z-30">
           <div className="flex items-center gap-3 min-w-0">
             <button
               type="button"
@@ -189,16 +332,94 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <Menu className="w-5 h-5" />
             </button>
             <div className="min-w-0">
-              <h1 className="text-base sm:text-lg font-bold font-heading text-brand-navy truncate">
-                {activeTitle}
-              </h1>
+              <div className="flex items-center gap-2">
+                <h1 className="text-base sm:text-lg font-bold font-heading text-brand-navy truncate">
+                  {activeTitle}
+                </h1>
+                <span className="hidden xl:inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  {selectedClinic.ehr} Live
+                </span>
+              </div>
               <p className="text-xs text-text-body/70 hidden sm:block truncate">
-                Interactive Demo Workspace · Real-time EHR sync simulated
+                {selectedClinic.name} · Real-time voice & EHR operations
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-2 shrink-0">
+            {/* Quick Search / Command Palette Trigger */}
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              className="hidden md:inline-flex items-center gap-2.5 px-3 py-1.5 rounded-xl bg-[#F7FAFC] hover:bg-surface-pale border border-border-soft text-xs text-text-body/75 transition-colors cursor-pointer"
+              title="Open Quick Command (Ctrl+K)"
+            >
+              <Search className="w-3.5 h-3.5 text-text-body/60" />
+              <span>Quick jump…</span>
+              <kbd className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-white border border-border-soft text-brand-navy/70">
+                ⌘K
+              </kbd>
+            </button>
+
+            {/* Notifications Popover */}
+            <div className="relative" ref={notifRef}>
+              <button
+                type="button"
+                onClick={() => setNotifOpen((prev) => !prev)}
+                className="relative p-2 rounded-xl border border-border-soft bg-white hover:bg-surface-pale text-brand-navy transition-colors cursor-pointer"
+                aria-label="Clinic notifications"
+              >
+                <Bell className="w-4 h-4" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-brand-teal ring-2 ring-white" />
+                )}
+              </button>
+
+              {notifOpen && (
+                <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl border border-border-soft shadow-xl z-40 overflow-hidden">
+                  <div className="px-4 py-3 border-b border-border-soft flex items-center justify-between">
+                    <span className="text-xs font-bold text-brand-navy">Clinic Alerts</span>
+                    {unreadCount > 0 && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setNotifications((prev) => prev.map((n) => ({ ...n, unread: false })))
+                        }
+                        className="text-[11px] font-semibold text-brand-blue hover:underline cursor-pointer"
+                      >
+                        Mark all read
+                      </button>
+                    )}
+                  </div>
+                  <div className="divide-y divide-border-soft max-h-72 overflow-y-auto">
+                    {notifications.map((n) => (
+                      <button
+                        key={n.id}
+                        type="button"
+                        onClick={() => {
+                          setNotifications((prev) =>
+                            prev.map((item) => (item.id === n.id ? { ...item, unread: false } : item))
+                          );
+                          onSelectTab(n.tab);
+                          setNotifOpen(false);
+                        }}
+                        className={`w-full px-4 py-3 text-left hover:bg-[#F7FAFC] transition-colors cursor-pointer ${
+                          n.unread ? 'bg-surface-pale/45' : ''
+                        }`}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-xs font-bold text-brand-navy">{n.title}</p>
+                          <span className="text-[10px] text-text-body/60 shrink-0">{n.time}</span>
+                        </div>
+                        <p className="text-[11px] text-text-body/75 mt-0.5 leading-relaxed">{n.detail}</p>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+
             <button
               type="button"
               onClick={onSimulateCall}
@@ -217,6 +438,13 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
               <ArrowLeft className="w-3.5 h-3.5" />
               <span>Website</span>
             </button>
+
+            <div
+              className="hidden sm:flex w-8 h-8 rounded-full bg-brand-navy text-white text-[11px] font-bold items-center justify-center shrink-0"
+              title="Dr. Elena Reyes · Practice Admin"
+            >
+              ER
+            </div>
           </div>
         </header>
 
@@ -225,6 +453,17 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           {children}
         </main>
       </div>
+
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        onSelectTab={onSelectTab}
+        onSimulateCall={onSimulateCall}
+        onSelectCall={onSelectCall}
+        calls={calls}
+        patients={patients}
+        claims={claims}
+      />
     </div>
   );
 };
