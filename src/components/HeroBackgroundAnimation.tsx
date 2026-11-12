@@ -59,22 +59,7 @@ export const HeroBackgroundAnimation: React.FC = () => {
       aria-hidden="true"
       className="absolute top-0 left-0 right-0 h-[840px] overflow-hidden pointer-events-none select-none z-0"
     >
-      {/* -------------------------------------------------------------
-          1. LUMINOUS ATMOSPHERIC BREATHING POOLS
-          ------------------------------------------------------------- */}
-      <div className="absolute -top-20 left-1/4 w-[38rem] h-[38rem] rounded-full bg-cyan-300/25 blur-[120px] animate-hero-biolum" />
-      <div
-        className="absolute top-12 right-1/4 w-[34rem] h-[34rem] rounded-full bg-white/20 blur-[110px] animate-hero-biolum"
-        style={{ animationDelay: '4s' }}
-      />
-      <div
-        className="absolute top-36 left-1/2 -translate-x-1/2 w-[42rem] h-[22rem] rounded-full bg-cyan-100/20 blur-[130px] animate-hero-biolum"
-        style={{ animationDelay: '2s' }}
-      />
-
-      {/* -------------------------------------------------------------
-          2. FLOATING BIOLUMINESCENT PARTICLES (Active Across Full Hero)
-          ------------------------------------------------------------- */}
+      {/* Floating bioluminescent particles across the hero */}
       <div className="absolute inset-0 overflow-hidden">
         {PARTICLES.map((p) => (
           <div
